@@ -13,8 +13,8 @@ function Game (props: object | any) {
     const [history, setHistory] = useState([
         {
             squares: Array(matrix * matrix).fill(null),
-            row: null,
-            col: null,
+            row: 0,
+            col: 0,
         },
     ]);
 
@@ -22,8 +22,8 @@ function Game (props: object | any) {
      * click drop
      */
     const handleClick = (ids: number) => {
-        setHistory(history.slice(0, stepNumber + 1));
-        const current: Object | any = history[history.length - 1];
+        const currentHistory = history.slice(0, stepNumber + 1);
+        const current: Object | any = currentHistory[currentHistory.length - 1];
         const squares = current.squares.slice();
         if (
             calculateWinner(squares, current.row, current.col).winner || squares[ids]
@@ -48,27 +48,24 @@ function Game (props: object | any) {
                 setIsBlack(false);
             }
         }
-
-        setHistory((history: [object, string, number] | any) => {
-            return history.concat([
-                {
-                    squares,
-                    row: parseInt(`${ids / matrix}`) + 1,
-                    col: (ids % matrix) + 1,
-                },
-            ]);
-        });
-
+        setHistory([
+            ...currentHistory,
+            {
+                squares,
+                row: parseInt(`${ids / matrix}`) + 1,
+                col: (ids % matrix) + 1,
+            },
+        ]);
         setXIsNext(!xIsNext);
-        setStepNumber(history.length);
+        setStepNumber(currentHistory.length);
     };
 
     /**
      * judgment drop
      */
-    const jumpTo = (step: number) => {
-        setXIsNext(step % 2 === 0);
+    const jumpTo = (step: any) => {
         setStepNumber(step);
+        setXIsNext(step % 2 === 0);
     };
     const current: any = history[stepNumber];
     const result = calculateWinner(current?.squares, current?.row, current?.col);
