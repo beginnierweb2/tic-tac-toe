@@ -4,6 +4,7 @@ type Props = {
     line: number[] | null;
     onClick: any;
     squares: number[];
+    value:string;
 };
 class Board extends React.Component<Props> {
     renderSquare (ids:number) {
@@ -28,9 +29,9 @@ class Board extends React.Component<Props> {
         let num = 0;
         let matrix = 3;
         const board: any[] = [];
-        if (sessionStorage.getItem('gameType') === 'tictactoe') {
+        if (this.props.value === 'tictactoe') {
             matrix = 3;
-        } else if (sessionStorage.getItem('gameType') === 'gobang') {
+        } else if (this.props.value === 'gobang') {
             matrix = 15;
         }
         for (let ids = 0; ids < matrix; ids++) {

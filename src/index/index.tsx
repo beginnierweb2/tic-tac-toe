@@ -14,19 +14,6 @@ const Index = () => {
     const handleGameTypeChange = (type: 'tictactoe' | 'gobang') => {
         setGameType(type);
     };
-    sessionStorage.setItem('gameType', gameType);
-    if (gameType === 'gobang') {
-        return (
-            <div>
-                <button onClick={() => handleGameTypeChange('tictactoe')}>
-                  井字棋
-                </button>
-                <button onClick={() => handleGameTypeChange('gobang')}>五子棋</button>
-                <h2>五子棋</h2>
-                <Game gameType={gameType}></Game>
-            </div>
-        );
-    }
     return (
         <div>
             <div>

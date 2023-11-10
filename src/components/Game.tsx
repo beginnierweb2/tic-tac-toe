@@ -1,7 +1,16 @@
 import React, { useState } from 'react';
 import Board from './Board.tsx';
 
-let matrix = 3;
+const GLOBAL_VARIABLE = {
+    /** The number of checkerboards */
+    matrix: 3,
+    /** Tic-tac-toe piece style */
+    chessToc: ['X', 'O'],
+    /** Pentoko pieces style */
+    chessFive: ['⚫', '⚪'],
+    /** chess game status */
+    status: '',
+};
 
 /**
  * main game logic
@@ -9,10 +18,12 @@ let matrix = 3;
 function Game (props: object | any) {
     const [stepNumber, setStepNumber] = useState(0);
     const [xIsNext, setXIsNext] = useState(true);
-    const [isBlack, setIsBlack] = useState(true);
+    const [init, setInit] = useState(props.gameType);
+    const [firstToc, secondToc] = GLOBAL_VARIABLE.chessToc;
+    const [first, second] = GLOBAL_VARIABLE.chessFive;
     const [history, setHistory] = useState([
         {
-            squares: Array(matrix * matrix).fill(null),
+            squares: Array(GLOBAL_VARIABLE.matrix * GLOBAL_VARIABLE.matrix).fill(null),
             row: 0,
             col: 0,
         },
@@ -26,34 +37,25 @@ function Game (props: object | any) {
         const current: Object | any = currentHistory[currentHistory.length - 1];
         const squares = current.squares.slice();
         if (
-            calculateWinner(squares, current.row, current.col).winner || squares[ids]
+            calculateWinner(props, squares, current.row, current.col).winner || squares[ids]
         ) {
             return;
         }
         if (props.gameType === 'tictactoe') {
-            matrix = 3;
-            squares[ids] = xIsNext ? 'X' : 'O';
-            if (squares[ids] === 'X') {
-                setIsBlack(true);
-                isBlack === true ?  1 : 0;
-            } else {
-                setIsBlack(false);
-            }
+            GLOBAL_VARIABLE.matrix = 3;
+            squares[ids] = xIsNext ? firstToc : secondToc;
         } else if (props.gameType === 'gobang') {
-            matrix = 15;
-            squares[ids] = xIsNext ? '⚫' : '⚪';
-            if (squares[ids] === '⚫') {
-                setIsBlack(true);
-            } else {
-                setIsBlack(false);
-            }
+            GLOBAL_VARIABLE.matrix = 15;
+            squares[ids] = xIsNext ? first : second;
+        } else {
+            console.warn('错误');
         }
         setHistory([
             ...currentHistory,
             {
                 squares,
-                row: parseInt(`${ids / matrix}`) + 1,
-                col: (ids % matrix) + 1,
+                row: parseInt(`${ids / GLOBAL_VARIABLE.matrix}`) + 1,
+                col: (ids % GLOBAL_VARIABLE.matrix) + 1,
             },
         ]);
         setXIsNext(!xIsNext);
@@ -68,7 +70,7 @@ function Game (props: object | any) {
         setXIsNext(step % 2 === 0);
     };
     const current: any = history[stepNumber];
-    const result = calculateWinner(current?.squares, current?.row, current?.col);
+    const result = calculateWinner(props, current?.squares, current?.row, current?.col);
     const { winner, lines } = result;
     const moves = history.map((step: [number, string] | any, move: number) => {
         let desc: string = '';
@@ -88,38 +90,52 @@ function Game (props: object | any) {
         );
     });
 
+    /**
+     * clear the board
+     */
+    const handleReset = () => {
+        setHistory([
+            {
+                squares: Array(GLOBAL_VARIABLE.matrix * GLOBAL_VARIABLE.matrix).fill(null),
+                row: 0,
+                col: 0,
+            },
+        ]);
+        setStepNumber(0);
+        setXIsNext(true);
+    };
+
     // reverse moves
     const orderableMoves = moves;
-    let status: string;
-    if (props.gameType === 'tictactoe') {
-        if (winner) {
-            status = `Winner:${winner}`;
-        } else if (!winner && stepNumber === matrix * matrix) {
-            status = 'MATCH!';
-        } else {
-            status = `Next player:${(xIsNext ? 'X' : 'O')}`;
-        }
+    if (winner) {
+        GLOBAL_VARIABLE.status = `Winner:${winner}`;
+    } else if (!winner && stepNumber === GLOBAL_VARIABLE.matrix * GLOBAL_VARIABLE.matrix) {
+        GLOBAL_VARIABLE.status = 'MATCH!';
     } else {
-        if (winner) {
-            status = `Winner:${winner}`;
-        } else if (!winner && stepNumber === matrix * matrix) {
-            status = 'MATCH!';
+        if (props.gameType === 'tictactoe') {
+            GLOBAL_VARIABLE.status = `Next player:${(xIsNext ? firstToc : secondToc)}`;
+        } else if (props.gameType === 'gobang') {
+            GLOBAL_VARIABLE.status = `Next player:${(xIsNext ? first : second)}`;
         } else {
-            status = `Next player:${(xIsNext ? '⚫' : '⚪')}`;
+            console.warn('错误');
         }
     }
-
+    if (init !== props.gameType) {
+        setInit(props.gameType);
+        handleReset();
+    }
     return (
         <div className='game'>
             <div className='game-board'>
                 <Board
                     squares={current.squares}
                     line={lines}
+                    value = {props.gameType}
                     onClick={(ids: number) => handleClick(ids)}
                 />
             </div>
             <div className='game-info'>
-                <div>{status}</div>
+                <div>{GLOBAL_VARIABLE.status}</div>
                 <ol>{orderableMoves}</ol>
             </div>
         </div>
@@ -129,138 +145,66 @@ function Game (props: object | any) {
 /**
  * judge whether you win
  */
-function calculateWinner (squares: number[], xaxis: number, yaxis: number) {
+function calculateWinner (props: any, squares: number[], xaxis: number, yaxis: number) {
     if (!xaxis || !yaxis) {
         return { winner: null, lines: null };
     }
 
-    // 1D -> 2D
     const board: any[] = [];
+    const matrixSize = GLOBAL_VARIABLE.matrix;
+    const winCondition = props.gameType === 'tictactoe' ? 2 : 4;
+    const directions = [
+        [-1, 0], // up
+        [-1, 1], // upper right
+        [0, 1], // right
+        [1, 1], // lower right
+        [1, 0], // down
+        [1, -1], // lower left
+        [0, -1], // left
+        [-1, -1], // upper left
+    ];
+
     let num = 0;
-    for (let ids = 0; ids < matrix; ids++) {
+    for (let ids = 0; ids < matrixSize; ids++) {
         board[ids] = [];
-        for (let jam = 0; jam < matrix; jam++, num++) {
+        for (let jam = 0; jam < matrixSize; jam++, num++) {
             board[ids][jam] = squares[num];
         }
     }
 
-    // as array starts from zero
     xaxis = xaxis - 1;
     yaxis = yaxis - 1;
     const mark = board[xaxis][yaxis];
     const lines: any[] = [[], [], [], [], [], [], [], []];
     const goOn = Array(8).fill(true);
+
     for (let step = 1; step <= 4; step++) {
-        // up ↑0
-        if (goOn[0] && xaxis - step >= 0) {
-            if (board[xaxis - step][yaxis] === mark) {
-                lines[0].push(((xaxis - step) * matrix) + yaxis);
-            } else {
-                goOn[0] = false;
-            }
-        }
+        for (let icount = 0; icount < directions.length; icount++) {
+            const [dx, dy] = directions[icount];
+            const newX = xaxis + (dx * step);
+            const newY = yaxis + (dy * step);
 
-        // upper right ↗ 1
-        if (goOn[1] && xaxis - step >= 0 && yaxis + step < matrix) {
-            if (board[xaxis - step][yaxis + step] === mark) {
-                lines[1].push(((xaxis - step) * matrix) + yaxis + step);
+            if (goOn[icount] && newX >= 0 && newX < matrixSize && newY >= 0 && newY < matrixSize) {
+                if (board[newX][newY] === mark) {
+                    lines[icount].push((newX * matrixSize) + newY);
+                } else {
+                    goOn[icount] = false;
+                }
             } else {
-                goOn[1] = false;
-            }
-        }
-
-        // right → 2
-        if (goOn[2] && yaxis + step < matrix) {
-            if (board[xaxis][yaxis + step] === mark) {
-                lines[2].push((xaxis * matrix) + yaxis + step);
-            } else {
-                goOn[2] = false;
-            }
-        }
-
-        // lower right ↘ 3
-        if (goOn[3] && xaxis + step < matrix && yaxis + step < matrix) {
-            if (board[xaxis + step][yaxis + step] === mark) {
-                lines[3].push(((xaxis + step) * matrix) + yaxis + step);
-            } else {
-                goOn[3] = false;
-            }
-        }
-
-        // down ↓ 4
-        if (goOn[4] && xaxis + step < matrix) {
-            if (board[xaxis + step][yaxis] === mark) {
-                lines[4].push(((xaxis + step) * matrix) + yaxis);
-            } else {
-                goOn[4] = false;
-            }
-        }
-
-        // lower left ↙ 5
-        if (goOn[5] && xaxis + step < matrix && yaxis - step >= 0) {
-            if (board[xaxis + step][yaxis - step] === mark) {
-                lines[5].push(((xaxis + step) * matrix) + yaxis - step);
-            } else {
-                goOn[5] = false;
-            }
-        }
-
-        // left ← 6
-        if (goOn[6] && yaxis - step >= 0) {
-            if (board[xaxis][yaxis - step] === mark) {
-                lines[6].push((xaxis * matrix) + yaxis - step);
-            } else {
-                goOn[6] = false;
-            }
-        }
-
-        // upper left ↖ 7
-        if (goOn[7] && xaxis - step >= 0 && yaxis - step >= 0) {
-            if (board[xaxis - step][yaxis - step] === mark) {
-                lines[7].push(((xaxis - step) * matrix) + yaxis - step);
-            } else {
-                goOn[7] = false;
+                goOn[icount] = false;
             }
         }
     }
-    if (
-        sessionStorage.getItem('gameType') === 'tictactoe'
-            ? lines[0].length + lines[4].length >= 2
-            : lines[0].length + lines[4].length >= 4
-    ) {
-        return {
-            winner: mark,
-            lines: [(xaxis * matrix) + yaxis].concat(lines[0]).concat(lines[4]),
-        };
-    } else if (
-        sessionStorage.getItem('gameType') === 'tictactoe'
-            ? lines[1].length + lines[5].length >= 2
-            : lines[1].length + lines[5].length >= 4
-    ) {
-        return {
-            winner: mark,
-            lines: [(xaxis * matrix) + yaxis].concat(lines[1]).concat(lines[5]),
-        };
-    } else if (
-        sessionStorage.getItem('gameType') === 'tictactoe'
-            ? lines[2].length + lines[6].length >= 2
-            : lines[2].length + lines[6].length >= 4
-    ) {
-        return {
-            winner: mark,
-            lines: [(xaxis * matrix) + yaxis].concat(lines[2]).concat(lines[6]),
-        };
-    } else if (
-        sessionStorage.getItem('gameType') === 'tictactoe'
-            ? lines[3].length + lines[7].length >= 2
-            : lines[3].length + lines[7].length >= 4
-    ) {
-        return {
-            winner: mark,
-            lines: [(xaxis * matrix) + yaxis].concat(lines[3]).concat(lines[7]),
-        };
+
+    for (let icount = 0; icount < lines.length; icount++) {
+        if (lines[icount].length >= winCondition) {
+            return {
+                winner: mark,
+                lines: [(xaxis * matrixSize) + yaxis].concat(lines[icount]),
+            };
+        }
     }
+
     return { winner: null, lines: null };
 }
-
 export default Game;
