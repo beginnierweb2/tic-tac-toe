@@ -1,16 +1,16 @@
-import React from 'react';
-
+import React, { useMemo } from 'react';
 /**
  * checkerboard
  */
-function Square (props: object | any) {
+const Square = (props: object | any) => {
+    const SquareData = useMemo(() => <button className='square' onClick={() => props.onClick(props.keyValue)}>
+        <strong style={{ backgroundColor: `${props.color}` }}>
+            {props.value}
+        </strong>
+    </button>, [props.value, props.color]);
     return (
-        <button className='square' onClick={props.onClick}>
-            <strong style={{ backgroundColor: `${props.color}` }}>
-                {props.value}
-            </strong>
-        </button>
+        <>{SquareData}</>
     );
-}
+};
 
 export default Square;

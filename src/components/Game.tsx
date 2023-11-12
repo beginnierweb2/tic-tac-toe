@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import Board from './Board.tsx';
 
 const GLOBAL_VARIABLE = {
@@ -16,8 +16,16 @@ const GLOBAL_VARIABLE = {
  * main game logic
  */
 function Game (props: object | any) {
+    if (props.gameType === 'tictactoe') {
+        GLOBAL_VARIABLE.matrix = 3;
+    } else if (props.gameType === 'gobang') {
+        GLOBAL_VARIABLE.matrix = 15;
+    } else {
+        console.warn('错误');
+    }
     const [stepNumber, setStepNumber] = useState(0);
     const [xIsNext, setXIsNext] = useState(true);
+    const [ids, setIds] = useState(null);
     const [init, setInit] = useState(props.gameType);
     const [firstToc, secondToc] = GLOBAL_VARIABLE.chessToc;
     const [first, second] = GLOBAL_VARIABLE.chessFive;
@@ -28,11 +36,18 @@ function Game (props: object | any) {
             col: 0,
         },
     ]);
+    const boardRef = useRef(null);
+    useEffect(() => {
+        handleClick();
+    }, [ids]);
 
     /**
-     * click drop
+     * click the board
      */
-    const handleClick = (ids: number) => {
+    const handleClick = () => {
+        if (ids === null) {
+            return;
+        }
         const currentHistory = history.slice(0, stepNumber + 1);
         const current: Object | any = currentHistory[currentHistory.length - 1];
         const squares = current.squares.slice();
@@ -42,15 +57,13 @@ function Game (props: object | any) {
             return;
         }
         if (props.gameType === 'tictactoe') {
-            GLOBAL_VARIABLE.matrix = 3;
             squares[ids] = xIsNext ? firstToc : secondToc;
         } else if (props.gameType === 'gobang') {
-            GLOBAL_VARIABLE.matrix = 15;
             squares[ids] = xIsNext ? first : second;
         } else {
             console.warn('错误');
         }
-        setHistory([
+        setHistory(() => [
             ...currentHistory,
             {
                 squares,
@@ -58,8 +71,11 @@ function Game (props: object | any) {
                 col: (ids % GLOBAL_VARIABLE.matrix) + 1,
             },
         ]);
-        setXIsNext(!xIsNext);
-        setStepNumber(currentHistory.length);
+        setXIsNext(xIsNext => !xIsNext);
+        setStepNumber(() => currentHistory.length);
+        setTimeout(() => {
+            (boardRef.current as any)?.mySetSquares(squares);
+        });
     };
 
     /**
@@ -68,6 +84,7 @@ function Game (props: object | any) {
     const jumpTo = (step: any) => {
         setStepNumber(step);
         setXIsNext(step % 2 === 0);
+        (boardRef.current as any)?.mySetSquares(history[step].squares);
     };
     const current: any = history[stepNumber];
     const result = calculateWinner(props, current?.squares, current?.row, current?.col);
@@ -124,14 +141,19 @@ function Game (props: object | any) {
         setInit(props.gameType);
         handleReset();
     }
+    const setHandleClick = useCallback((data) => {
+        setIds(() => data);
+    }, [ids]);
     return (
         <div className='game'>
             <div className='game-board'>
                 <Board
+                    ref={boardRef}
                     squares={current.squares}
                     line={lines}
-                    value = {props.gameType}
-                    onClick={(ids: number) => handleClick(ids)}
+                    chessboard={Array(GLOBAL_VARIABLE.matrix * GLOBAL_VARIABLE.matrix).fill(null)}
+                    value={props.gameType}
+                    onClick={(ids: number) => setHandleClick(ids)}
                 />
             </div>
             <div className='game-info'>

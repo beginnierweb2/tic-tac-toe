@@ -1,50 +1,58 @@
-import React from 'react';
-import Square from './Square.tsx';
-type Props = {
-    line: number[] | null;
-    onClick: any;
-    squares: number[];
-    value:string;
-};
-class Board extends React.Component<Props> {
-    renderSquare (ids:number) {
-        let color: string;
-        if (this.props.line && this.props.line.includes(ids)) {
-            color = 'red';
-        } else {
-            color = '';
-        }
-        return (
-            <Square
-                key={ids}
-                value={this.props.squares[ids]}
-                color={color}
-                onClick={() => this.props.onClick(ids)}
-            />
-        );
-    }
 
-    // rerender by loop
-    render () {
-        let num = 0;
-        let matrix = 3;
-        const board: any[] = [];
-        if (this.props.value === 'tictactoe') {
-            matrix = 3;
-        } else if (this.props.value === 'gobang') {
-            matrix = 15;
-        }
-        for (let ids = 0; ids < matrix; ids++) {
-            const boardRow: any[] = [];
-            for (let jam = 0; jam < matrix; jam++, num++) {
-                boardRow.push(this.renderSquare(num));
-            }
-            board.push(<div className='board-row' key={ids}>
-                {boardRow}
-            </div>);
-        }
-        return <div>{board}</div>;
-    }
-}
+import React, { forwardRef, useImperativeHandle, useState } from 'react';
+import Square from './Square.tsx';
+
+/**
+ * square of board
+ */
+const Board = forwardRef((props: object | any, ref) => {
+    const [squares, setSquares] = useState(props.chessboard);
+
+    /**
+     * memory board
+     */
+    const mySetSquares = (list:string) => {
+        setSquares([...list]);
+    };
+
+    /**
+     * determine the drop position
+     */
+    const myClick = (index:number) => {
+        props.onClick(index);
+    };
+    useImperativeHandle(ref, () => ({ mySetSquares }));
+    let color: string;
+    const SquareData = React.useMemo(
+        () =>
+            <div className={squares.length === 9 ? 'board-row' : 'board-row1'}>
+                {
+                    squares.map((item:string, index:number) => {
+                        if (props.line && props.line.includes(index)) {
+                            color = 'red';
+                        } else {
+                            color = '';
+                        }
+                        return (
+                            <Square
+                                key={index}
+                                keyValue={index}
+                                value={item}
+                                color={color}
+                                onClick={(index:number) => myClick(index)}
+                            />
+                        );
+                    })
+                }
+            </div>
+        , [squares]
+    );
+
+    return (
+        <>
+            {SquareData}
+        </>
+    );
+});
 
 export default Board;

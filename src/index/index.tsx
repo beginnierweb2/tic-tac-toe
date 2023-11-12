@@ -38,7 +38,7 @@ const GameContainer = ({ gameType }: { gameType: 'tictactoe' | 'gobang' }) => {
     return (
         <div>
             <h2>{gameType === 'tictactoe' ? '井字棋' : '五子棋'}</h2>
-            <Game gameType={gameType}></Game>
+            <Game gameType={gameType} key={gameType}></Game>
         </div>
     );
 };
